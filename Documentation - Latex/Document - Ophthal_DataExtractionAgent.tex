@@ -1,0 +1,161 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+    breakatwhitespace=true,
+    frame=single,
+    language=Python
+}
+
+\title{Project Documentation: Ophthalmology Data Extraction}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Overview}
+This project involves extracting question-answer pairs related to ophthalmology from multiple web pages and saving them in a CSV file. The script uses Python's \texttt{requests} library for web scraping and \texttt{BeautifulSoup} for parsing HTML content. It includes error handling, data validation, and ensures the extracted data is relevant to ophthalmology.
+
+\section{Requirements}
+\begin{itemize}
+    \item Python 3.x
+    \item \texttt{requests} library
+    \item \texttt{beautifulsoup4} library
+    \item \texttt{csv} module (part of Python's standard library)
+\end{itemize}
+
+\section{Setup Instructions}
+\begin{enumerate}
+    \item \textbf{Install Python}: Ensure Python 3.x is installed on your system. You can download it from \href{https://www.python.org/}{python.org}.
+    \item \textbf{Install Required Libraries}: Install the necessary Python libraries using pip:
+    \begin{lstlisting}[language=bash]
+pip install requests beautifulsoup4
+    \end{lstlisting}
+\end{enumerate}
+
+\section{Script Explanation}
+
+\subsection{Fetching Web Pages}
+The \texttt{fetch\_page} function retrieves the content of a given URL and handles potential request errors.
+
+\begin{lstlisting}
+import requests
+from requests.exceptions import RequestException
+
+def fetch_page(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.content
+    except RequestException as e:
+        print(f"Request failed for {url}: {e}")
+        return None
+\end{lstlisting}
+
+\subsection{Parsing Question-Answer Pairs}
+The \texttt{parse\_questions\_answers} function parses the HTML content to extract question-answer pairs. It ensures that only relevant questions (related to ophthalmology) are included.
+
+\begin{lstlisting}
+from bs4 import BeautifulSoup
+
+def parse_questions_answers(soup):
+    qa_pairs = []
+    questions = soup.find_all('h1')
+    for question in questions:
+        answer = question.find_next('p')
+        question_text = question.get_text(strip=True)
+        answer_text = answer.get_text(strip=True) if answer else 'No answer found'
+        if is_valid_ophthalmology_question(question_text):
+            qa_pairs.append((question_text, answer_text))
+    return qa_pairs
+
+def is_valid_ophthalmology_question(question):
+    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health']
+    return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
+\end{lstlisting}
+
+\subsection{Saving Data to CSV}
+The \texttt{save\_to\_csv} function saves the extracted question-answer pairs to a CSV file.
+
+\begin{lstlisting}
+import csv
+
+def save_to_csv(data, filename):
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Question", "Answer"])
+        writer.writerows(data)
+\end{lstlisting}
+
+\subsection{Main Function}
+The \texttt{main} function coordinates the scraping process, iterating over multiple URLs and aggregating the results.
+
+\begin{lstlisting}
+def main():
+    urls = [
+        "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist#ophthalmologist",
+        # Add more URLs here
+    ]
+    
+    all_qa_pairs = []
+
+    for url in urls:
+        page_content = fetch_page(url)
+        if page_content:
+            soup = BeautifulSoup(page_content, 'html.parser')
+            qa_pairs = parse_questions_answers(soup)
+            all_qa_pairs.extend(qa_pairs)
+    
+    save_to_csv(all_qa_pairs, "vision_health_qa.csv")
+    print("Data extraction and saving completed.")
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\section{Instructions for the Intern}
+\begin{enumerate}
+    \item \textbf{Understand the Current Code}: Thoroughly read and understand the existing code. Pay special attention to the functions and how they interact.
+    \item \textbf{Add More URLs}: Expand the \texttt{urls} list with additional URLs that contain relevant ophthalmology information.
+    \item \textbf{Improve Validation}:\\
+     Enhance the \texttt{is\_valid\_ophthalmology\_question} function to better filter relevant questions. Consider using more advanced NLP techniques if necessary.
+    \item \textbf{Error Handling}: Improve error handling to make the script more robust. Consider logging errors to a file for better traceability.
+    \item \textbf{Documentation}: Maintain detailed documentation of any changes made. Ensure comments in the code are clear and descriptive.
+    \item \textbf{Code Testing}: Test the code with various URLs to ensure it works correctly and handles edge cases.
+    \item \textbf{Version Control}: Use a version control system (e.g., Git) to track changes and collaborate effectively.
+    \item \textbf{Optimization}: Optimize the code for performance, especially if dealing with a large number of URLs or large HTML content.
+    \item \textbf{User Interface}: If time permits, consider creating a simple user interface (CLI or GUI) to allow non-technical users to add URLs and run the script.
+    \item \textbf{Regular Updates}: Regularly update the script to adapt to changes in the HTML structure of target websites.
+\end{enumerate}
+
+\section{Future Enhancements}
+\begin{itemize}
+    \item \textbf{Advanced Data Processing}: Implement advanced data processing techniques to refine the extracted data.
+    \item \textbf{Machine Learning Integration}: Use machine learning models to automatically classify and validate question-answer pairs.
+    \item \textbf{Scalability}: Make the script scalable to handle a larger volume of data and concurrent requests.
+\end{itemize}
+
+\end{document}
