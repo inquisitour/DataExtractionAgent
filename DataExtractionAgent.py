@@ -29,7 +29,7 @@ def parse_questions_answers(soup):
 
 def is_valid_ophthalmology_question(question):
     # Add validation logic here. For simplicity, we check for keywords related to ophthalmology
-    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health']
+    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract']
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
 
 def save_to_csv(data, filename):
