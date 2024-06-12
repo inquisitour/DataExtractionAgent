@@ -15,16 +15,33 @@ def fetch_page(url):
         print(f"Request failed for {url}: {e}")
         return None
 
-def parse_questions_answers(soup):
+def extract_questions_answers(soup):
     qa_pairs = []
-    # Adjusting to extract <h1> tags as questions and their subsequent <p> tags as answers
-    questions = soup.find_all('h1')
-    for question in questions:
-        answer = question.find_next('p')
-        question_text = question.get_text(strip=True)
-        answer_text = answer.get_text(strip=True) if answer else 'No answer found'
-        if is_valid_ophthalmology_question(question_text):
-            qa_pairs.append((question_text, answer_text))
+    unique_questions = set()  # To store unique questions
+
+    def add_qa_pair(question, answer):
+        if question not in unique_questions:
+            unique_questions.add(question)
+            qa_pairs.append((question, answer))
+
+    def find_questions_answers(element):
+        for tag in element.find_all(True):  # True means all tags
+            question_text = tag.get_text(strip=True)
+            if question_text.endswith('?'):
+                answer_text = ''
+                answer_tag = tag.find_next('p')
+                if answer_tag:
+                    answer_text = answer_tag.get_text(strip=True)
+
+                # Limit the answer to 100 words
+                if answer_text:
+                    words = answer_text.split()
+                    if len(words) > 100:
+                        answer_text = ' '.join(words[:100]) + '...'
+
+                add_qa_pair(question_text, answer_text.strip())
+
+    find_questions_answers(soup)
     return qa_pairs
 
 def is_valid_ophthalmology_question(question):
@@ -43,16 +60,16 @@ def main():
         "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist#ophthalmologist",
         # Add more URLs here
     ]
-    
+
     all_qa_pairs = []
 
     for url in urls:
         page_content = fetch_page(url)
         if page_content:
             soup = BeautifulSoup(page_content, 'html.parser')
-            qa_pairs = parse_questions_answers(soup)
+            qa_pairs = extract_questions_answers(soup)
             all_qa_pairs.extend(qa_pairs)
-    
+
     save_to_csv(all_qa_pairs, "vision_health_qa.csv")
     print("Data extraction and saving completed.")
 
