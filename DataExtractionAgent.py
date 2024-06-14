@@ -5,6 +5,7 @@ from requests.exceptions import RequestException
 from urllib.parse import urljoin, urlparse
 
 def fetch_page(url):
+    '''Fetches the content of a web page given its URL.'''
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
@@ -17,11 +18,7 @@ def fetch_page(url):
         return None
 
 def extract_questions_answers(soup):
-    '''Checks if a question is valid for ophthalmology-related content.
-        Args:
-    - soup (BeautifulSoup): The BeautifulSoup object representing the parsed HTML content of a web page.
-
-    '''
+    '''Extracts question-answer pairs from a BeautifulSoup object representing a parsed HTML page.'''
 
     qa_pairs = []
     unique_questions = set()  # To store unique questions
@@ -38,43 +35,47 @@ def extract_questions_answers(soup):
             qa_pairs.append((question, answer))
 
 
-    def find_questions_answers(element):
+    def find_questions_answers(soup):
         '''Finds questions and answers in the given BeautifulSoup element.
         Args:
         - element (BeautifulSoup): The BeautifulSoup element to search for questions and answers.
 
         '''
-        question_text = ''
-        answer_text = ''
-        for tag in element.find_all(['h1', 'h2', 'h3', 'p'], recursive=True):  # Search for questions in multiple tags
-            if tag.name in ['h1', 'h2', 'h3'] and tag.get_text(strip=True).endswith('?') and len(tag.get_text(strip=True).split()) <= 15:  # Adjust the maximum number of words here
-                # Store the previous question-answer pair if found
-                if question_text and answer_text:
-                    add_qa_pair(question_text.strip(), answer_text.strip())
-                    question_text = ''
-                    answer_text = ''
-                
-                question_text = tag.get_text(strip=True)
-            elif tag.name == 'p' and question_text:  # Capture answer only if there's a preceding question
-                answer_text = tag.get_text(strip=True)
-                if answer_text:  # Limit the answer to 100 words if it's too long
-                    words = answer_text.split()
-                    if len(words) > 100:
-                        answer_text = ' '.join(words[:100]) + '...'
+        question_text = None
+        answer_text = None
 
+        def add_current_qa_pair():
+            '''Adds the current question-answer pair to qa_pairs and resets question_text and answer_text.'''
+            nonlocal question_text, answer_text
+            if question_text and answer_text:
+                if len(answer_text.split()) > 100:
+                    answer_text = ' '.join(answer_text.split()[:100]) + '...'
                 add_qa_pair(question_text.strip(), answer_text.strip())
-                question_text = ''  # Reset question_text for the next question
+                question_text = None
+                answer_text = None
 
-        # Append the last question-answer pair found
-        if question_text and answer_text:
-            add_qa_pair(question_text.strip(), answer_text.strip())
+
+        # Iterate through HTML tags to find questions (headers) and answers (paragraphs)
+        for tag in soup.find_all(['h1', 'h2', 'h3','p'], recursive=True):
+            if tag.name in ['h1', 'h2', 'h3']:
+                add_current_qa_pair()
+                question_text = tag.get_text(strip=True)
+            elif tag.name == 'p':
+                if question_text:
+                    if answer_text:
+                        answer_text += " " + tag.get_text(strip=True)
+                    else:
+                        answer_text = tag.get_text(strip=True)
+        
+        add_current_qa_pair()  # Add the last collected pair if any
 
     find_questions_answers(soup)
     return qa_pairs
 
 def is_valid_ophthalmology_question(question):
-    # Add validation logic here. For simplicity, we check for keywords related to ophthalmology
-    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract','glaucoma','astigmatism','Strabismus','short-sightedness','long-sightedness']
+    # Add some Keywords related to ophthalmology
+    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract','glaucoma','astigmatism','Strabismus','short-sightedness','long-sightedness',
+    'macular degeneration', 'retina', 'cornea', 'LASIK','myopia', 'hyperopia', 'dry eye', 'uveitis', 'keratoconus', 'presbyopia']
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
 
 def save_to_csv(data, filename):
@@ -110,7 +111,7 @@ def crawl(urls, depth=2):
             
             # Filter and add only unique ophthalmology-related QA pairs
             for q, a in qa_pairs:
-                if is_valid_ophthalmology_question(q) and q not in unique_questions:
+                if is_valid_ophthalmology_question(q) and q.endswith('?') and q not in unique_questions:
                     unique_questions.add(q)
                     all_qa_pairs.append((q, a))
 
@@ -124,10 +125,12 @@ def crawl(urls, depth=2):
     return all_qa_pairs
 
 def main():
-    '''    Main function to initiate crawling and save the data to a CSV file. '''
+    ''' Main function to initiate crawling and save the data to a CSV file.
+        Add new url to extract data '''
     start_urls = [
                 "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist",
-                "https://www.healthdirect.gov.au/ophthalmologist" 
+                "https://www.healthdirect.gov.au/ophthalmologist",
+                "https://www.webmd.com/eye-health/default.htm"
                 ]
 
     all_qa_pairs = crawl(start_urls)
