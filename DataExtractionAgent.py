@@ -1,142 +1,141 @@
-import requests
+import aiohttp
+import asyncio
 from bs4 import BeautifulSoup
 import csv
-from requests.exceptions import RequestException
 from urllib.parse import urljoin, urlparse
+import time
+import nest_asyncio
 
-def fetch_page(url):
-    '''Fetches the content of a web page given its URL.'''
+''' Use asyncio , aiohttp , nest_asyncio
+    asyncio: Core library for asynchronous programming in Python.
+    aiohttp: Asynchronous HTTP client/server framework built on asyncio.
+    nest_asyncio: Utility to make asyncio nestable in environments that already have an event loop running
+'''
+
+# Apply nest_asyncio to allow nested use of asyncio
+nest_asyncio.apply()
+
+async def fetch_page(session, url):
+    '''Fetches the content of a web page given its URL using aiohttp.'''
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.content
-    except RequestException as e:
+        async with session.get(url, headers=headers) as response:
+            response.raise_for_status()
+            return await response.text()
+    except Exception as e:
         print(f"Request failed for {url}: {e}")
         return None
 
 def extract_questions_answers(soup):
     '''Extracts question-answer pairs from a BeautifulSoup object representing a parsed HTML page.'''
-
     qa_pairs = []
-    unique_questions = set()  # To store unique questions
+    question_text = None
+    answer_text = None
 
-    def add_qa_pair(question, answer):
-        ''' Adds a question-answer pair to qa_pairs if the question is unique.
-        Args:
-        - question (str): The question to add.
-        - answer (str): The answer to add.
-        '''
-
-        if question not in unique_questions:
-            unique_questions.add(question)
-            qa_pairs.append((question, answer))
-
-
-    def find_questions_answers(soup):
-        '''Finds questions and answers in the given BeautifulSoup element.
-        Args:
-        - element (BeautifulSoup): The BeautifulSoup element to search for questions and answers.
-
-        '''
-        question_text = None
-        answer_text = None
-
-        def add_current_qa_pair():
-            '''Adds the current question-answer pair to qa_pairs and resets question_text and answer_text.'''
-            nonlocal question_text, answer_text
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'p'], recursive=True):
+        if tag.name in ['h1', 'h2', 'h3']:
             if question_text and answer_text:
-                if len(answer_text.split()) > 100:
-                    answer_text = ' '.join(answer_text.split()[:100]) + '...'
-                add_qa_pair(question_text.strip(), answer_text.strip())
-                question_text = None
-                answer_text = None
+                qa_pairs.append((question_text, answer_text.strip()))
+            question_text = tag.get_text(strip=True)
+            answer_text = ''
+        elif tag.name == 'p' and question_text and question_text.endswith('?'):
+            if answer_text:
+                answer_text += ' ' + tag.get_text(strip=True)
+            else:
+                answer_text = tag.get_text(strip=True)
 
+            # Limit answer to 100 words
+            if len(answer_text.split()) > 100:
+                answer_text = ' '.join(answer_text.split()[:100]) + '...'
 
-        # Iterate through HTML tags to find questions (headers) and answers (paragraphs)
-        for tag in soup.find_all(['h1', 'h2', 'h3','p'], recursive=True):
-            if tag.name in ['h1', 'h2', 'h3']:
-                add_current_qa_pair()
-                question_text = tag.get_text(strip=True)
-            elif tag.name == 'p':
-                if question_text:
-                    if answer_text:
-                        answer_text += " " + tag.get_text(strip=True)
-                    else:
-                        answer_text = tag.get_text(strip=True)
-        
-        add_current_qa_pair()  # Add the last collected pair if any
+            # Check if answer should exactly be 100 words
+            if "particular answers in 100 words" in question_text.lower() and len(answer_text.split()) != 100:
+                answer_text = ' '.join(answer_text.split()[:100]) + '...'
 
-    find_questions_answers(soup)
+    if question_text and answer_text:
+        qa_pairs.append((question_text, answer_text.strip()))
+
     return qa_pairs
 
 def is_valid_ophthalmology_question(question):
-    # Add some Keywords related to ophthalmology
-    ophthalmology_keywords = ['eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract','glaucoma','astigmatism','Strabismus','short-sightedness','long-sightedness',
-    'macular degeneration', 'retina', 'cornea', 'LASIK','myopia', 'hyperopia', 'dry eye', 'uveitis', 'keratoconus', 'presbyopia']
+    # Keywords related to ophthalmology
+    ophthalmology_keywords = [
+        'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract',
+        'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
+        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 
+        'dry eye', 'pink eye', 'uveitis', 'keratoconus', 'presbyopia'
+    ]
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
 
 def save_to_csv(data, filename):
-    ''' Saves the question-answer pairs to a CSV file.'''
-
+    '''Saves the question-answer pairs to a CSV file.'''
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(["Question", "Answer"])
         writer.writerows(data)
 
-def crawl(urls, depth=2):
-    ''' Crawls a web page and its subpages recursively, extracting ophthalmology-related question-answer pairs.
+async def process_url(url, session, visited_urls, depth, seen_qa_pairs):
+    '''Processes a single URL to extract question-answer pairs and recursively processes subpages.'''
+    if url in visited_urls or depth == 0:
+        return []
 
-    Args:
-    - url (str): The URL of the starting web page.
-    - depth (int): The maximum depth of recursion for crawling subpages.
+    visited_urls.add(url)
+    qa_pairs = []
 
-    '''
-    visited_urls = set()
+    page_content = await fetch_page(session, url)
+    if page_content:
+        soup = BeautifulSoup(page_content, 'html.parser')
+        extracted_pairs = extract_questions_answers(soup)
+        for q, a in extracted_pairs:
+            if q.endswith('?') and is_valid_ophthalmology_question(q) and (q, a) not in seen_qa_pairs:
+                seen_qa_pairs.add((q, a))
+                qa_pairs.append((q, a))
+
+        # Recursively process subpages
+        tasks = []
+        for link in soup.find_all('a', href=True):
+            next_url = urljoin(url, link['href'])
+            if urlparse(next_url).scheme in ['http', 'https']:  # Crawl both HTTP and HTTPS links
+                tasks.append(process_url(next_url, session, visited_urls, depth - 1, seen_qa_pairs))
+        subpage_qa_pairs = await asyncio.gather(*tasks)
+        for pairs in subpage_qa_pairs:
+            qa_pairs.extend(pairs)
+
+    return qa_pairs
+
+async def crawl(urls, depth=2):
+    '''Processes each URL to extract ophthalmology-related question-answer pairs.'''
     all_qa_pairs = []
-    unique_questions = set()  # To track unique questions
+    visited_urls = set()
+    seen_qa_pairs = set()
 
-    def recursive_crawl(url, current_depth):
-        ''' Recursively crawls the given URL up to the specified depth.   '''
-        if url in visited_urls or current_depth > depth:
-            return
-        visited_urls.add(url)
-        
-        page_content = fetch_page(url)
-        if page_content:
-            soup = BeautifulSoup(page_content, 'html.parser')
-            qa_pairs = extract_questions_answers(soup)
-            
-            # Filter and add only unique ophthalmology-related QA pairs
-            for q, a in qa_pairs:
-                if is_valid_ophthalmology_question(q) and q.endswith('?') and q not in unique_questions:
-                    unique_questions.add(q)
-                    all_qa_pairs.append((q, a))
+    async with aiohttp.ClientSession() as session:
+        for url in urls:
+            qa_pairs = await process_url(url, session, visited_urls, depth, seen_qa_pairs)
+            all_qa_pairs.extend(qa_pairs)
 
-            # Find links in the current page and recursively crawl them
-            for link in soup.find_all('a', href=True):
-                next_url = urljoin(url, link['href'])
-                if urlparse(next_url).scheme in ['http', 'https']:  # Crawl both HTTP and HTTPS links
-                    recursive_crawl(next_url, current_depth + 1)
-    for url in urls:
-        recursive_crawl(url, 0)
     return all_qa_pairs
 
 def main():
-    ''' Main function to initiate crawling and save the data to a CSV file.
-        Add new url to extract data '''
+    '''Main function to initiate crawling and save the data to a CSV file.'''
     start_urls = [
-                "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist",
-                "https://www.healthdirect.gov.au/ophthalmologist",
-                "https://www.webmd.com/eye-health/default.htm"
-                ]
+        "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist",
+        "https://www.healthdirect.gov.au/ophthalmologist",
+        "https://www.webmd.com/eye-health/default.htm",
+        "https://www.aao.org/eye-health"
+    ]
 
-    all_qa_pairs = crawl(start_urls)
+    start_time = time.time()
+
+    # Run the async crawl function
+    all_qa_pairs = asyncio.run(crawl(start_urls))
+
+    end_time = time.time()
 
     save_to_csv(all_qa_pairs, "vision_health_qa.csv")
-    print("Data extraction and saving completed.")
+    print(f"Data extraction and saving completed in {end_time - start_time:.2f} seconds.")
 
 if __name__ == "__main__":
     main()
