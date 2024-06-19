@@ -34,13 +34,13 @@ def extract_questions_answers(soup):
     question_text = None
     answer_text = None
 
-    for tag in soup.find_all(['h1', 'h2', 'h3', 'p'], recursive=True):
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'p','li'], recursive=True):
         if tag.name in ['h1', 'h2', 'h3']:
             if question_text and answer_text:
                 qa_pairs.append((question_text, answer_text.strip()))
             question_text = tag.get_text(strip=True)
             answer_text = ''
-        elif tag.name == 'p' and question_text and question_text.endswith('?'):
+        elif tag.name in ['p', 'li'] and question_text and question_text.endswith('?'):
             if answer_text:
                 answer_text += ' ' + tag.get_text(strip=True)
             else:
@@ -64,8 +64,8 @@ def is_valid_ophthalmology_question(question):
     ophthalmology_keywords = [
         'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract',
         'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
-        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 
-        'dry eye', 'pink eye', 'uveitis', 'keratoconus', 'presbyopia'
+        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters', 
+        'dry eye', 'pink eye', 'Amblyopia' , 'uveitis', 'keratoconus', 'presbyopia' ,'ROP','Diabetic retinopathy'
     ]
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
 
@@ -124,7 +124,8 @@ def main():
         "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist",
         "https://www.healthdirect.gov.au/ophthalmologist",
         "https://www.webmd.com/eye-health/default.htm",
-        "https://www.aao.org/eye-health"
+        "https://www.aao.org/eye-health",
+        "https://www.med.unc.edu/ophth/for-patients/eye-diseases-and-disorders/"
     ]
 
     start_time = time.time()
