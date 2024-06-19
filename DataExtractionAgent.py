@@ -126,7 +126,11 @@ def main():
         "https://www.webmd.com/eye-health/default.htm",
         "https://www.aao.org/eye-health",
         "https://www.med.unc.edu/ophth/for-patients/eye-diseases-and-disorders/",
-        "https://healthcare.utah.edu/moran/services"
+        "https://healthcare.utah.edu/moran/services",
+        "https://www.cdc.gov/vision-health/about-eye-disorders/index.html",
+        "https://medlineplus.gov/eyesandvision.html",
+        "https://www.news-medical.net/condition/Eye-Health"
+
     ]
 
     start_time = time.time()
