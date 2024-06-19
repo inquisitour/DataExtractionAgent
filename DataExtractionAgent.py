@@ -62,7 +62,7 @@ def extract_questions_answers(soup):
 def is_valid_ophthalmology_question(question):
     # Keywords related to ophthalmology
     ophthalmology_keywords = [
-        'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract',
+        'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract', 'stye',
         'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
         'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters', 
         'dry eye', 'pink eye', 'Amblyopia' , 'uveitis', 'keratoconus', 'presbyopia' ,'ROP','Diabetic retinopathy'
@@ -125,7 +125,8 @@ def main():
         "https://www.healthdirect.gov.au/ophthalmologist",
         "https://www.webmd.com/eye-health/default.htm",
         "https://www.aao.org/eye-health",
-        "https://www.med.unc.edu/ophth/for-patients/eye-diseases-and-disorders/"
+        "https://www.med.unc.edu/ophth/for-patients/eye-diseases-and-disorders/",
+        "https://healthcare.utah.edu/moran/services"
     ]
 
     start_time = time.time()
