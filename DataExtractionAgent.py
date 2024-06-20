@@ -6,12 +6,6 @@ from urllib.parse import urljoin, urlparse
 import time
 import nest_asyncio
 
-''' Use asyncio , aiohttp , nest_asyncio
-    asyncio: Core library for asynchronous programming in Python.
-    aiohttp: Asynchronous HTTP client/server framework built on asyncio.
-    nest_asyncio: Utility to make asyncio nestable in environments that already have an event loop running
-'''
-
 # Apply nest_asyncio to allow nested use of asyncio
 nest_asyncio.apply()
 
@@ -34,25 +28,28 @@ def extract_questions_answers(soup):
     question_text = None
     answer_text = None
 
-    for tag in soup.find_all(['h1', 'h2', 'h3', 'p','li'], recursive=True):
-        if tag.name in ['h1', 'h2', 'h3']:
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'p', 'li', 'strong', 'b'], recursive=True):
+        text = tag.get_text(strip=True)
+        if tag.name in ['h1', 'h2', 'h3', 'strong', 'b'] and text.endswith('?'):
             if question_text and answer_text:
                 qa_pairs.append((question_text, answer_text.strip()))
-            question_text = tag.get_text(strip=True)
+            question_text = text
             answer_text = ''
-        elif tag.name in ['p', 'li'] and question_text and question_text.endswith('?'):
-            if answer_text:
-                answer_text += ' ' + tag.get_text(strip=True)
-            else:
-                answer_text = tag.get_text(strip=True)
+        elif question_text:
+            if tag.name in ['p', 'li']:
+                if answer_text:
+                    answer_text += ' ' + text
+                else:
+                    answer_text = text
 
-            # Limit answer to 100 words
-            if len(answer_text.split()) > 100:
-                answer_text = ' '.join(answer_text.split()[:100]) + '...'
+                # Limit answer to 200 words
+                if len(answer_text.split()) > 200:
+                    answer_text = ' '.join(answer_text.split()[:200]) + '.'
+                    break  # Stop adding more content to the current answer
 
-            # Check if answer should exactly be 100 words
-            if "particular answers in 100 words" in question_text.lower() and len(answer_text.split()) != 100:
-                answer_text = ' '.join(answer_text.split()[:100]) + '...'
+            elif not question_text.endswith('?'):
+                qa_pairs.append((question_text, text.strip()))
+                question_text = None
 
     if question_text and answer_text:
         qa_pairs.append((question_text, answer_text.strip()))
@@ -60,12 +57,12 @@ def extract_questions_answers(soup):
     return qa_pairs
 
 def is_valid_ophthalmology_question(question):
-    # Keywords related to ophthalmology
+    '''Checks if a question is related to ophthalmology.'''
     ophthalmology_keywords = [
         'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract', 'stye',
         'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
-        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters', 
-        'dry eye', 'pink eye', 'Amblyopia' , 'uveitis', 'keratoconus', 'presbyopia' ,'ROP','Diabetic retinopathy'
+        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters',
+        'dry eye', 'pink eye', 'Amblyopia', 'uveitis', 'keratoconus', 'presbyopia', 'ROP', 'Diabetic retinopathy'
     ]
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
 
@@ -89,7 +86,7 @@ async def process_url(url, session, visited_urls, depth, seen_qa_pairs):
         soup = BeautifulSoup(page_content, 'html.parser')
         extracted_pairs = extract_questions_answers(soup)
         for q, a in extracted_pairs:
-            if q.endswith('?') and is_valid_ophthalmology_question(q) and (q, a) not in seen_qa_pairs:
+            if is_valid_ophthalmology_question(q) and (q, a) not in seen_qa_pairs:
                 seen_qa_pairs.add((q, a))
                 qa_pairs.append((q, a))
 
@@ -130,7 +127,6 @@ def main():
         "https://www.cdc.gov/vision-health/about-eye-disorders/index.html",
         "https://medlineplus.gov/eyesandvision.html",
         "https://www.news-medical.net/condition/Eye-Health"
-
     ]
 
     start_time = time.time()
