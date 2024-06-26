@@ -1,12 +1,18 @@
 # extraction.py
 
-import aiohttp
 import asyncio
+import aiohttp
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-import nest_asyncio
+from preprocessing import clean_text, truncate_answer, filter_irrelevant_sentences, call_scrapegraphai_api
 
-nest_asyncio.apply()
+# Define the keywords for filtering ophthalmology-related questions
+ophthalmology_keywords = [
+    'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract', 'stye',
+    'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
+    'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters',
+    'dry eye', 'pink eye', 'Amblyopia', 'uveitis', 'keratoconus', 'presbyopia', 'ROP', 'Diabetic retinopathy'
+]
 
 async def fetch_page(session, url):
     '''Fetches the content of a web page given its URL using aiohttp.'''
@@ -21,21 +27,6 @@ async def fetch_page(session, url):
         print(f"Request failed for {url}: {e}")
         return None
 
-def clean_text(text):
-    '''Clean text by removing unwanted patterns and ensuring proper spacing.'''
-    unwanted_phrases = ["DownloadPDF", "Copy", "Click here", "Read more"]
-    for phrase in unwanted_phrases:
-        text = text.replace(phrase, "")
-    return ' '.join(text.split())
-
-def truncate_answer(answer):
-    '''Truncate answer to a maximum number of words for uniformity.'''
-    words = answer.split()
-    truncated_answer = ' '.join(words[:300])  # Limiting the answer to 300 words for uniformity
-    if not truncated_answer.endswith('.'):
-        truncated_answer += '.'
-    return truncated_answer
-
 def extract_questions_answers(soup):
     '''Extracts question-answer pairs from a BeautifulSoup object representing a parsed HTML page.'''
     qa_pairs = []
@@ -47,7 +38,10 @@ def extract_questions_answers(soup):
 
         if tag.name in ['h1', 'h2', 'h3', 'strong', 'b'] and text.endswith('?'):
             if question_text and answer_text:
-                qa_pairs.append((question_text, truncate_answer(' '.join(answer_text).strip())))
+                answer = ' '.join(answer_text).strip()
+                answer = filter_irrelevant_sentences(answer)
+                clean_answer = call_scrapegraphai_api(truncate_answer(answer))
+                qa_pairs.append((question_text, clean_answer))
             question_text = text
             answer_text = []
         elif question_text:
@@ -59,16 +53,59 @@ def extract_questions_answers(soup):
                     break  # Stop adding more content to the current answer
 
     if question_text and answer_text:
-        qa_pairs.append((question_text, truncate_answer(' '.join(answer_text).strip())))
+        answer = ' '.join(answer_text).strip()
+        answer = filter_irrelevant_sentences(answer)
+        clean_answer = call_scrapegraphai_api(truncate_answer(answer))
+        qa_pairs.append((question_text, clean_answer))
 
     return qa_pairs
 
 def is_valid_ophthalmology_question(question):
     '''Checks if a question is related to ophthalmology.'''
-    ophthalmology_keywords = [
-        'eye', 'vision', 'optometrist', 'ophthalmologist', 'eye health', 'cataract', 'stye',
-        'glaucoma', 'astigmatism', 'strabismus', 'short-sightedness', 'long-sightedness',
-        'macular degeneration', 'retina', 'cornea', 'lasik', 'myopia', 'hyperopia', 'floaters',
-        'dry eye', 'pink eye', 'Amblyopia', 'uveitis', 'keratoconus', 'presbyopia', 'ROP', 'Diabetic retinopathy'
-    ]
     return any(keyword.lower() in question.lower() for keyword in ophthalmology_keywords)
+
+async def process_url(url, session, visited_urls, depth, seen_qa_pairs):
+    '''Processes a single URL to extract question-answer pairs and recursively processes subpages.'''
+    if url in visited_urls or depth == 0:
+        return []
+
+    visited_urls.add(url)
+    qa_pairs = []
+
+    page_content = await fetch_page(session, url)
+    if page_content:
+        soup = BeautifulSoup(page_content, 'html.parser')
+        extracted_pairs = extract_questions_answers(soup)
+        for q, a in extracted_pairs:
+            if is_valid_ophthalmology_question(q):
+                qa_pair = (q, a)
+                if qa_pair not in seen_qa_pairs:
+                    seen_qa_pairs.add(qa_pair)
+                    qa_pairs.append(qa_pair)
+
+        # Recursively process subpages
+        tasks = []
+        for link in soup.find_all('a', href=True):
+            next_url = urljoin(url, link['href'])
+            if urlparse(next_url).scheme in ['http', 'https']:  # Crawl both HTTP and HTTPS links
+                tasks.append(process_url(next_url, session, visited_urls, depth - 1, seen_qa_pairs))
+        subpage_qa_pairs = await asyncio.gather(*tasks)
+        for pairs in subpage_qa_pairs:
+            qa_pairs.extend(pairs)
+
+    return qa_pairs
+
+async def crawl(urls, depth=2):
+    '''Processes each URL to extract ophthalmology-related question-answer pairs.'''
+    all_qa_pairs = []
+    visited_urls = set()
+    seen_qa_pairs = set()
+
+    async with aiohttp.ClientSession() as session:
+        for url in urls:
+            qa_pairs = await process_url(url, session, visited_urls, depth, seen_qa_pairs)
+            all_qa_pairs.extend(qa_pairs)
+
+    # Sort and deduplicate to ensure consistency
+    all_qa_pairs = sorted(set(all_qa_pairs), key=lambda x: (x[0], x[1]))
+    return all_qa_pairs
