@@ -1,5 +1,4 @@
-DataExtractionAgent Project
-Overview
+DataExtractionAgent Project  Overview
 This project involves extracting question-answer pairs related to ophthalmology from multiple web pages and saving them in a CSV file. It utilizes web scraping techniques and ensures the extracted data is relevant and properly processed.
 
 Files Structure
