@@ -39,9 +39,11 @@ This project involves extracting question-answer pairs related to ophthalmology 
 \section{Requirements}
 \begin{itemize}
     \item Python 3.x
+    \item aiohttp library
     \item \texttt{requests} library
     \item \texttt{beautifulsoup4} library
     \item \texttt{csv} module (part of Python's standard library)
+    
 \end{itemize}
 
 \section{Setup Instructions}
@@ -49,7 +51,7 @@ This project involves extracting question-answer pairs related to ophthalmology 
     \item \textbf{Install Python}: Ensure Python 3.x is installed on your system. You can download it from \href{https://www.python.org/}{python.org}.
     \item \textbf{Install Required Libraries}: Install the necessary Python libraries using pip:
     \begin{lstlisting}[language=bash]
-pip install requests beautifulsoup4
+pip install aiohttp beautifulsoup4 requests
     \end{lstlisting}
 \end{enumerate}
 
@@ -134,6 +136,41 @@ def main():
 
 if __name__ == "__main__":
     main()
+\end{lstlisting}
+
+\subsection{Main Function}
+\begin{lstlisting}[language=Python, caption={Main Function}]
+async def main(api_key=None):
+    '''Main function to coordinate the scraping process and save the results.'''
+    urls = [
+        "https://www.healthline.com/health/eye-health/optometrist-vs-ophthalmologist",
+        "https://www.healthdirect.gov.au/ophthalmologist",
+        "https://www.webmd.com/eye-health/default.htm",
+        "https://www.aao.org/eye-health",
+        "https://www.med.unc.edu/ophth/for-patients/eye-diseases-and-disorders/",
+        "https://healthcare.utah.edu/moran/services",
+        "https://www.cdc.gov/vision-health/about-eye-disorders/index.html",
+        "https://medlineplus.gov/eyesandvision.html",
+        "https://www.news-medical.net/condition/Eye-Health"
+    ]
+    
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_page(session, url) for url in urls]
+        pages_content = await asyncio.gather(*tasks)
+        
+        all_qa_pairs = []
+        for content in pages_content:
+            if content:
+                soup = BeautifulSoup(content, 'html.parser')
+                qa_pairs = parse_questions_answers(soup, api_key=api_key)
+                all_qa_pairs.extend(qa_pairs)
+        
+        save_to_csv(all_qa_pairs, "ophthalmology_qa.csv")
+        print("Data extraction and saving completed.")
+
+# Run the main function
+api_key = 'your_openai_api_key_here'  # Replace with your actual OpenAI API key if available
+asyncio.run(main(api_key=api_key))
 \end{lstlisting}
 
 \section{Instructions for the Intern}
