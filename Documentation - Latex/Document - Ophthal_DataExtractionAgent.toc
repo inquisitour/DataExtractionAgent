@@ -6,5 +6,6 @@
 \contentsline {subsection}{\numberline {4.2}Parsing Question-Answer Pairs}{3}{subsection.4.2}%
 \contentsline {subsection}{\numberline {4.3}Saving Data to CSV}{4}{subsection.4.3}%
 \contentsline {subsection}{\numberline {4.4}Main Function}{4}{subsection.4.4}%
-\contentsline {section}{\numberline {5}Instructions for the Intern}{5}{section.5}%
-\contentsline {section}{\numberline {6}Future Enhancements}{5}{section.6}%
+\contentsline {subsection}{\numberline {4.5}Main Function}{4}{subsection.4.5}%
+\contentsline {section}{\numberline {5}Instructions for the Intern}{6}{section.5}%
+\contentsline {section}{\numberline {6}Future Enhancements}{6}{section.6}%
