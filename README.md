@@ -1,8 +1,8 @@
-# OphthalmologyQA Web Scraper
+# DataExtractionAgent
 
 ## 🔬 Project Overview
 
-OphthalmologyQA Web Scraper is an advanced web scraping tool designed to extract question-answer pairs related to ophthalmology from various online sources. It combines modern web scraping techniques with natural language processing to create a comprehensive database of ophthalmology-related information.
+DataExtractionAgent is an advanced web scraping tool designed to extract question-answer pairs related to ophthalmology from various online sources. It combines modern web scraping techniques with natural language processing to create a comprehensive database of ophthalmology-related information.
 
 ### 🌟 Key Features
 
