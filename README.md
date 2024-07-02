@@ -1,53 +1,131 @@
-# DataExtractionAgent Project
+# OphthalmologyQA Web Scraper
 
-## Overview
-This project involves extracting question-answer pairs related to ophthalmology from multiple web pages and saving them in a CSV file. It utilizes web scraping techniques and ensures the extracted data is relevant and properly processed.
+## 🔬 Project Overview
 
-## Files Structure
-- **`agent.py`**: Main script for initiating crawling and saving data to CSV.
-- **`dataextraction.py`**: Handles asynchronous web crawling, HTML parsing, and extraction of QA pairs.
-- **`preprocessing.py`**: Contains functions for text cleaning, answer truncation, filtering irrelevant sentences, and API integration.
-- **`visualization.py`**: Saves extracted QA pairs to a CSV file.
+OphthalmologyQA Web Scraper is an advanced web scraping tool designed to extract question-answer pairs related to ophthalmology from various online sources. It combines modern web scraping techniques with natural language processing to create a comprehensive database of ophthalmology-related information.
 
-## Changes Made
-Outlined below are the updates and modifications made to each file in the project:
+### 🌟 Key Features
 
-### `agent.py`
-**Purpose**: Orchestrates the crawling process for specified URLs using `asyncio` and `aiohttp`, managing the initiation of data extraction and CSV saving.
+- **Multi-source Scraping**: Leverages ScrapeGraphAI, Scrapy, and Apify for robust data extraction.
+- **AI-Powered Text Processing**: Utilizes NLP techniques for cleaning and preprocessing scraped data.
+- **Intelligent Caching**: Implements a caching system to optimize performance and reduce redundant scraping.
+- **Data Visualization**: Generates visualizations to provide insights into the scraped data.
+- **Webhook Support**: Handles long-running scraping tasks through webhook notifications.
+- **Configurable Settings**: Easily customizable via a centralized configuration file.
 
-**Key Functions**:
-- **`main()`**: Executes the main crawling and saving process.
+## 🛠 Setup and Installation
 
-### `dataextraction.py`
-**Purpose**: Handles asynchronous web crawling, HTML parsing, and extraction of QA pairs related to ophthalmology.
+### Prerequisites
 
-**Key Functions**:
-- **`fetch_page(session, url)`**: Fetches the content of a web page given its URL using `aiohttp`. Utilizes asynchronous HTTP requests to retrieve HTML content and implements error handling to manage request failures.
-  
-- **`extract_questions_answers(soup)`**: Extracts question-answer pairs from parsed HTML content using `BeautifulSoup`. Identifies relevant content based on HTML tags (`h1`, `h2`, `p`, `li`, etc.). Cleans extracted text using functions from `preprocessing.py`.
+- Python 3.12+
+- pip (Python package manager)
+- Virtual environment (recommended)
 
-- **`is_valid_ophthalmology_question(question)`**: Validates if a question pertains to ophthalmology based on specific keywords to ensure relevance of extracted QA pairs.
+### Step-by-step Setup
 
-- **`process_url(url, session, visited_urls, depth, seen_qa_pairs)`**: Processes a URL to extract QA pairs and recursively crawls subpages within a specified depth limit. Initiates fetching of page content, extracts QA pairs using `extract_questions_answers`, and recursively processes subpages.
+1. **Clone the repository**
+   ```
+   git clone https://github.com/yourusername/ophthalmologyqa-web-scraper.git
+   cd ophthalmologyqa-web-scraper
+   ```
 
-- **`crawl(urls, depth=2)`**: Initiates crawling of multiple URLs to extract ophthalmology-related QA pairs using `asyncio`. Manages concurrent crawling tasks, integrating functions for URL processing, QA pair extraction, and subpage crawling.
+2. **Set up a virtual environment**
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   ```
 
-### `preprocessing.py`
-**Purpose**: Contains functions for text cleaning, answer truncation, filtering irrelevant sentences, and API integration for text preprocessing.
+3. **Install required packages**
+   ```
+   pip install -r requirements.txt
+   ```
 
-**Key Functions**:
-- **`clean_text(text)`**: Cleans text by removing unwanted patterns and ensuring proper spacing.
-- **`truncate_answer(answer)`**: Truncates answers to a maximum number of words for uniformity.
-- **`call_scrapegraphai_api(text)`**: Calls ScrapeGraphAI API to clean and preprocess the text.
-- **`filter_irrelevant_sentences(text)`**: Filters out irrelevant sentences from the text.
+4. **Set up environment variables**
+   Create a `.env` file in the root directory with the following content:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   APIFY_API_TOKEN=your_apify_api_token_here
+   ```
+   Replace the placeholders with your actual API keys.
 
-### `visualization.py`
-**Purpose**: Saves extracted QA pairs to a CSV file using Python's `csv` module, ensuring proper formatting and encoding.
+5. **Configure the application**
+   Review and modify `config.py` to adjust settings as needed.
 
-**Key Functions**:
-- **`save_to_csv(data, filename)`**: Saves the question-answer pairs to a CSV file.
+## 🚀 Usage
 
-## Running the Program
-Execute the main script to start the crawling process and save extracted QA pairs:
-```bash
-python3 agent.py
+### Running the Scraper
+
+1. Start the FastAPI server:
+   ```
+   python Agent.py
+   ```
+
+2. The server will run on `http://localhost:8000`.
+
+### API Endpoints
+
+- **POST `/scrape`**: For immediate scraping
+  - Body: `{"urls": ["url1", "url2"], "depth": 2}`
+  - Returns: Scraping completion message and count of Q&A pairs
+
+- **POST `/scrape-webhook`**: For long-running scraping tasks
+  - Body: `{"urls": ["url1", "url2"], "depth": 2, "webhook_url": "https://your-webhook-url.com"}`
+  - Returns: Task initiation message
+
+### Default URLs
+
+The scraper includes a pre-configured list of ophthalmology-related websites in the `config.py` file, including sources like Healthline, WebMD, and the American Academy of Ophthalmology.
+
+### Viewing Results
+
+After scraping, you'll find:
+- CSV file with Q&A pairs: `vision_health_qa.csv`
+- Word cloud image: `question_wordcloud.png`
+- Question length distribution: `question_length_distribution.png`
+- Top keywords chart: `top_keywords.png`
+
+## 🧠 How It Works
+
+1. **Scraping Process**: Utilizes ScrapeGraphAI, Scrapy, and Apify to extract data from multiple sources.
+2. **Data Processing**: Cleans and preprocesses extracted text using NLP techniques.
+3. **Data Storage and Visualization**: Stores processed Q&A pairs in a CSV file and generates visualizations.
+
+## 📂 Project Structure
+
+- `Agent.py`: Main entry point and API server
+- `DataExtraction.py`: Core scraping logic
+- `preprocessing.py`: Text cleaning and preprocessing
+- `visualization.py`: Data visualization and CSV generation
+- `config.py`: Centralized configuration settings
+
+## 🛠 Customization
+
+- Modify `config.py` to adjust scraping settings and output paths.
+- Extend `preprocessing.py` for custom text processing rules.
+- Enhance `visualization.py` for additional data visualizations.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/YourFeature`)
+3. Commit your changes (`git commit -m 'Add YourFeature'`)
+4. Push to the branch (`git push origin feature/YourFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## 📞 Support
+
+For issues or questions, please file an issue on the GitHub issue tracker.
+
+## 🙏 Acknowledgements
+
+- OpenAI for their GPT model
+- Apify for their web scraping platform
+- The Scrapy team for their web scraping framework
+
+Happy scraping! 🕷️🔍👁️
