@@ -53,21 +53,21 @@ class Preprocessor:
             truncated_answer += '.'
         return truncated_answer
 
-    async def call_scrapegraphai_api(self, text):
-        '''Call ScrapeGraphAI API to clean and preprocess the text.'''
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config.OPENAI_API_KEY}"
-        }
-        payload = {"text": text}
+    #async def call_scrapegraphai_api(self, text):
+        #'''Call ScrapeGraphAI API to clean and preprocess the text.'''
+        #headers = {
+            #"Content-Type": "application/json",
+            #"Authorization": f"Bearer {config.OPENAI_API_KEY}"
+        #}
+        #payload = {"text": text}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(config.SCRAPEGRAPHAI_API_URL, json=payload, headers=headers)
-            if response.status_code == 200:
-                return response.json().get('cleaned_text', text)
-            else:
-                print(f"Error calling ScrapeGraphAI API: {response.status_code}")
-                return text  # Return original text if API call fails
+        #async with httpx.AsyncClient() as client:
+            #response = await client.post(config.SCRAPEGRAPHAI_API_URL, json=payload, headers=headers)
+            #if response.status_code == 200:
+                #return response.json().get('cleaned_text', text)
+            #else:
+               # print(f"Error calling ScrapeGraphAI API: {response.status_code}")
+                #return text  # Return original text if API call fails
 
     def filter_irrelevant_sentences(self, text):
         '''Filter out irrelevant sentences from the text.'''
