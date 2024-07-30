@@ -48,10 +48,8 @@ TOP_KEYWORDS_COUNT = 10
 
 # Scrapy settings
 SCRAPY_SETTINGS = {
-    'BOT_NAME': 'DataExtractionAgent',
-    'SPIDER_MODULES': ['DataExtractionAgent.spiders'],
-    'NEWSPIDER_MODULE': 'DataExtractionAgent.spiders',
-    'USER_AGENT': 'DataExtractionAgent (Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36)',
+    'BOT_NAME': 'ophthalmology',
+    'USER_AGENT': 'ophthalmology (Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36)',
     'ROBOTSTXT_OBEY': False,
     'CONCURRENT_REQUESTS': 16,
     'DOWNLOAD_DELAY': 2,
@@ -78,8 +76,6 @@ SCRAPY_SETTINGS = {
     'HTTPCACHE_DIR': 'httpcache',
     'HTTPCACHE_IGNORE_HTTP_CODES': [],
     'HTTPCACHE_STORAGE': 'scrapy.extensions.httpcache.FilesystemCacheStorage',
-    'LOG_LEVEL': 'DEBUG',
-    'FEEDS': {'output.json': {'format': 'json'}}
-
+    'LOG_LEVEL': 'DEBUG'
 }
 

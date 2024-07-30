@@ -77,8 +77,8 @@ if __name__ == "__main__":
     time.sleep(2)
 
     # Run the async scraping process
-    #urls_to_scrape = config.URLS_TO_SCRAPE
-    #asyncio.run(scraping_manager.scrape_data(urls_to_scrape))
+    urls_to_scrape = config.URLS_TO_SCRAPE
+    asyncio.run(scraping_manager.scrape_data(urls_to_scrape))
 
     # Send POST requests
     asyncio.run(send_post_request_to_scrape())
