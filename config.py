@@ -52,7 +52,7 @@ SCRAPY_SETTINGS = {
     'USER_AGENT': 'ophthalmology (Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36)',
     'ROBOTSTXT_OBEY': False,
     'CONCURRENT_REQUESTS': 16,
-    'DOWNLOAD_DELAY': 2,
+    'DOWNLOAD_DELAY': 0.5,
     'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
     'CONCURRENT_REQUESTS_PER_IP': 8,
     'SPIDER_MIDDLEWARES': {
@@ -76,6 +76,9 @@ SCRAPY_SETTINGS = {
     'HTTPCACHE_DIR': 'httpcache',
     'HTTPCACHE_IGNORE_HTTP_CODES': [],
     'HTTPCACHE_STORAGE': 'scrapy.extensions.httpcache.FilesystemCacheStorage',
-    'LOG_LEVEL': 'DEBUG'
+    'LOG_LEVEL': 'DEBUG',
+    'DUPEFILTER_CLASS' : 'scrapy.dupefilters.RFPDupeFilter',
+    'DEPTH_LIMIT': MAX_DEPTH 
+
 }
 

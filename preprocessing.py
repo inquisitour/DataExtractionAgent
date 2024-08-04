@@ -16,11 +16,11 @@ class Preprocessor:
             "DownloadPDF", "Copy", "Click here", "Read more"
         ]
         self.irrelevant_phrases = [
-            "About Us", "Academics", "Research", "Billing", "Find an Interpreter", "Giving",
+            "About Us", "Academics", "Research", "Billing", "Find an Interpreter", "Giving","healthdirect Australia free service talk nurse doctor help know",
             "Jobs", "Maps & Directions", "Newsroom", "Referring Providers", "Patient Rights & Responsibilities",
-            "Disclaimer", "Privacy Statement", "Public Information Policy", "Non-Discrimination Policy",
-            "Surprise Billing Rights", "Webmaster", "65 Mario Capecchi Drive", "Salt Lake City", "Utah", "801-581-2352",
-            "Last medically reviewed", "Retrieved from", "Our experts continually monitor", "Medically reviewed by"
+            "Disclaimer", "Privacy Statement", "Public Information Policy", "Non-Discrimination Policy","call triple zero immediately",
+            "Surprise Billing Rights", "Webmaster", "65 Mario Capecchi Drive", "Salt Lake City", "Utah", "801-581-2352","need urgent medical help",
+            "Last medically reviewed", "Retrieved from", "Our experts continually monitor", "Medically reviewed by" ,"Medical problem ? Call",
         ]
         self.stop_words = set(stopwords.words('english'))
         self.ophthalmology_keywords = config.OPHTHALMOLOGY_KEYWORDS
@@ -66,7 +66,7 @@ class Preprocessor:
 
     def validate_answer(self, answer):
         '''Validates if the answer is of appropriate length and relevance.'''
-        return 20 <= len(answer.split()) <= 300  # Example criteria: length between 20 and 300 words
+        return 10 <= len(answer.split()) <= 300  # Example criteria: length between 10 and 300 words
 
     def is_perfect_pair(self, question, answer):
         '''Check if a question-answer pair is perfect and does not need further processing.'''
