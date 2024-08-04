@@ -20,7 +20,7 @@ class Preprocessor:
             "Jobs", "Maps & Directions", "Newsroom", "Referring Providers", "Patient Rights & Responsibilities",
             "Disclaimer", "Privacy Statement", "Public Information Policy", "Non-Discrimination Policy","call triple zero immediately",
             "Surprise Billing Rights", "Webmaster", "65 Mario Capecchi Drive", "Salt Lake City", "Utah", "801-581-2352","need urgent medical help",
-            "Last medically reviewed", "Retrieved from", "Our experts continually monitor", "Medically reviewed by" ,"Medical problem ? Call",
+            "Last medically reviewed", "Retrieved from", "Our experts continually monitor", "Medically reviewed by" ,"Medical problem ? Call"
         ]
         self.stop_words = set(stopwords.words('english'))
         self.ophthalmology_keywords = config.OPHTHALMOLOGY_KEYWORDS
@@ -47,8 +47,14 @@ class Preprocessor:
         '''Truncate answer to a maximum number of words for uniformity.'''
         words = answer.split()
         truncated_answer = ' '.join(words[:300])
-        if not truncated_answer.endswith('.'):
-            truncated_answer += '.'
+        
+        # Remove trailing colons
+        truncated_answer = truncated_answer.rstrip(':')
+
+        # Ensure only one full stop at the end
+        truncated_answer = truncated_answer.rstrip('.')
+        truncated_answer += '.'
+
         return truncated_answer
 
     def filter_irrelevant_sentences(self, text):
@@ -66,6 +72,9 @@ class Preprocessor:
 
     def validate_answer(self, answer):
         '''Validates if the answer is of appropriate length and relevance.'''
+        # Skip empty or almost empty answers
+        if not answer.strip() or len(answer.strip().split()) < 2:
+            return False
         return 10 <= len(answer.split()) <= 300  # Example criteria: length between 10 and 300 words
 
     def is_perfect_pair(self, question, answer):
@@ -91,30 +100,17 @@ class Preprocessor:
         filtered_answer = self.filter_irrelevant_sentences(cleaned_answer)
         truncated_answer = self.truncate_answer(filtered_answer)
 
+        # Check if the processed answer is still valid
+        if not self.validate_answer(truncated_answer):
+            return None, None  # Skip if the final answer is invalid
+
         return cleaned_question, truncated_answer
 
     def preprocess_data(self, qa_pairs):
         '''Process raw QA pairs and return a list of processed pairs.'''
         processed_pairs = []
         for question, answer in qa_pairs:
-            if self.is_perfect_pair(question, answer):
-                # If the QA pair is perfect, no further processing is needed
-                processed_pairs.append((question, answer))
-                continue
-
-            if not self.contains_keywords(question):
-                # Skip questions not related to ophthalmology
-                continue
-            if not self.validate_answer(answer):
-                # Skip invalid answers
-                continue
-
-            # Clean and truncate if necessary
-            cleaned_question = self.clean_text(question)
-            cleaned_answer = self.clean_text(answer)
-            filtered_answer = self.filter_irrelevant_sentences(cleaned_answer)
-            truncated_answer = self.truncate_answer(filtered_answer)
-
-            processed_pairs.append((cleaned_question, truncated_answer))
-
+            cleaned_question, cleaned_answer = self.preprocess_qa_pair(question, answer)
+            if cleaned_question and cleaned_answer:
+                processed_pairs.append((cleaned_question, cleaned_answer))
         return processed_pairs
